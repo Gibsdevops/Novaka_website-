@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Menu, X, Mail, Phone, MapPin, Star, TrendingUp, Users, Award, ArrowRight, CheckCircle, Lightbulb, Target, Heart, Shield } from 'lucide-react';
+import { getServices, getTestimonials, getCompanyInfo, submitContactForm } from '../apiConfig';
+import { fallbackServices, fallbackTestimonials, fallbackCompanyInfo } from '../fallbackData';
 
 export default function NovakHospitality() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -13,11 +15,72 @@ export default function NovakHospitality() {
     message: ''
   });
 
+  // State for API data
+  const [services, setServices] = useState(fallbackServices);
+  const [testimonials, setTestimonials] = useState(fallbackTestimonials);
+  const [companyInfo, setCompanyInfo] = useState(fallbackCompanyInfo);
+  const [loading, setLoading] = useState(true);
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  // Icon mapping for services
+  const iconMap = {
+    'Operations Excellence': <TrendingUp className="w-8 h-8" />,
+    'People Management': <Users className="w-8 h-8" />,
+    'Financial Advisory': <Award className="w-8 h-8" />,
+    'Technology Solutions': <Target className="w-8 h-8" />,
+    'Customer Experience': <CheckCircle className="w-8 h-8" />,
+    'Business Turnarounds': <Lightbulb className="w-8 h-8" />
+  };
+
+  // Fetch data from API on component mount
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        // Fetch services
+        try {
+          const servicesData = await getServices();
+          if (servicesData && servicesData.length > 0) {
+            setServices(servicesData.sort((a, b) => a.order - b.order));
+          }
+        } catch (error) {
+          console.warn('Using fallback services data');
+        }
+
+        // Fetch testimonials
+        try {
+          const testimonialsData = await getTestimonials();
+          if (testimonialsData && testimonialsData.length > 0) {
+            setTestimonials(testimonialsData.filter(t => t.published));
+          }
+        } catch (error) {
+          console.warn('Using fallback testimonials data');
+        }
+
+        // Fetch company info
+        try {
+          const companyData = await getCompanyInfo();
+          if (companyData && companyData.length > 0) {
+            setCompanyInfo(companyData[0]);
+          }
+        } catch (error) {
+          console.warn('Using fallback company data');
+        }
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, []);
+
   const slides = [
     {
       image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1920&h=1080&fit=crop",
       title: "Powering Success in Hospitality",
-      subtitle: "Transform your business with strategic consulting excellence",
+      subtitle: companyInfo?.subtitle || "Transform your business with strategic consulting excellence",
       cta: "Discover Our Solutions"
     },
     {
@@ -52,39 +115,6 @@ export default function NovakHospitality() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
-  const services = [
-    {
-      icon: <TrendingUp className="w-8 h-8" />,
-      title: "Operations Excellence",
-      description: "Operations Alignment, Quality Control & Standardization, Food Safety Management, Success Routines, and Operational Cash Management"
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "People Management",
-      description: "Training Programs, Customized Training, People Management Systems, Recruitment Management and Employee Performance Analytics"
-    },
-    {
-      icon: <Award className="w-8 h-8" />,
-      title: "Financial Advisory",
-      description: "Predictive Sales Analytics, Cost Management, P&L Analysis, Budget Analysis, Cost Controls Advisory"
-    },
-    {
-      icon: <Target className="w-8 h-8" />,
-      title: "Technology Solutions",
-      description: "POS & Back Office, Access Control, CCTV, Fire Alarms, Audio/Visual Solutions and Customized Business Templates"
-    },
-    {
-      icon: <CheckCircle className="w-8 h-8" />,
-      title: "Customer Experience",
-      description: "Sales Channel Analytics, Delivery Strategy, Operations Compliance Audits, Customer Experience Implementation"
-    },
-    {
-      icon: <Lightbulb className="w-8 h-8" />,
-      title: "Business Turnarounds",
-      description: "Menu Engineering, Inventory Management, Purchasing Advisory, Startup Consulting, KPI Implementation"
-    }
-  ];
-
   const values = [
     { icon: <Award />, title: "Excellence", description: "Dedicated to exceeding expectations and achieving excellence in all our services" },
     { icon: <Lightbulb />, title: "Innovation", description: "Fostering creativity and adapting to change to provide cutting-edge solutions" },
@@ -108,10 +138,20 @@ export default function NovakHospitality() {
     { name: "Meetings & Events", items: ["Conferences", "Trade Shows", "Corporate Events", "Celebrations", "Exhibitions"] }
   ];
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
-    alert('Message sent! We will contact you soon.');
-    setContactForm({ name: '', email: '', phone: '', message: '' });
+    setFormSubmitting(true);
+
+    try {
+      await submitContactForm(contactForm);
+      alert('Message sent successfully! We will contact you soon.');
+      setContactForm({ name: '', email: '', phone: '', message: '' });
+    } catch (error) {
+      alert('Failed to send message. Please try again or email us directly.');
+      console.error('Contact form error:', error);
+    } finally {
+      setFormSubmitting(false);
+    }
   };
 
   return (
@@ -217,7 +257,7 @@ export default function NovakHospitality() {
             <div>
               <h2 className="text-4xl font-bold text-slate-900 mb-6">Who We Are</h2>
               <p className="text-lg text-gray-700 mb-4">
-                Novak Hospitality Solutions Uganda Ltd is a dynamic and multi-faceted company dedicated to delivering exceptional value to clients and enhancing profitability across diverse industries.
+                {companyInfo?.about || "Novak Hospitality Solutions Uganda Ltd is a dynamic and multi-faceted company dedicated to delivering exceptional value to clients and enhancing profitability across diverse industries."}
               </p>
               <p className="text-lg text-gray-700 mb-6">
                 With a decade of experience, we create value, mitigate risk, and prioritize your unique hospitality vision. As your seasoned guide, we navigate your first venture or offer solutions for distressed situations.
@@ -261,12 +301,14 @@ export default function NovakHospitality() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {services.map((service, index) => (
-              <div key={index} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition group">
+              <div key={service.id || index} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-2xl transition group">
                 <div className="bg-amber-500/10 w-16 h-16 rounded-lg flex items-center justify-center mb-6 group-hover:bg-amber-500 transition">
-                  <div className="text-amber-500 group-hover:text-white transition">{service.icon}</div>
+                  <div className="text-amber-500 group-hover:text-white transition">
+                    {iconMap[service.title] || <Target className="w-8 h-8" />}
+                  </div>
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-4">{service.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{service.description}</p>
+                <p className="text-gray-600 leading-relaxed">{service.intro}</p>
               </div>
             ))}
           </div>
@@ -302,18 +344,20 @@ export default function NovakHospitality() {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">What Our Clients Say</h2>
           </div>
-          <div className="bg-white rounded-2xl p-8 md:p-12 shadow-xl">
-            <div className="flex gap-2 text-amber-500 mb-6 justify-center">
-              {[...Array(5)].map((_, i) => <Star key={i} fill="currentColor" size={24} />)}
+          {testimonials.map((testimonial, index) => (
+            <div key={testimonial.id || index} className="bg-white rounded-2xl p-8 md:p-12 shadow-xl mb-8">
+              <div className="flex gap-2 text-amber-500 mb-6 justify-center">
+                {[...Array(5)].map((_, i) => <Star key={i} fill="currentColor" size={24} />)}
+              </div>
+              <p className="text-lg text-gray-700 italic mb-6 leading-relaxed">
+                "{testimonial.content}"
+              </p>
+              <div className="text-center">
+                <p className="font-bold text-slate-900 text-xl">{testimonial.author}</p>
+                <p className="text-gray-600">{testimonial.role}</p>
+              </div>
             </div>
-            <p className="text-lg text-gray-700 italic mb-6 leading-relaxed">
-              "I can't speak highly enough of Novak Hospitality Solutions. As a hotel owner, I was facing challenges in optimizing our operations and enhancing guest experiences. Novak's expertise in the hospitality industry made all the difference. Their commitment to excellence and client satisfaction is truly outstanding. Thanks to them, we've seen a remarkable improvement in our efficiency, which has translated into increased profitability."
-            </p>
-            <div className="text-center">
-              <p className="font-bold text-slate-900 text-xl">John Smith</p>
-              <p className="text-gray-600">Hotel Owner</p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -333,7 +377,7 @@ export default function NovakHospitality() {
                   </div>
                   <div>
                     <h3 className="text-white font-semibold mb-1">Location</h3>
-                    <p className="text-gray-300">Kirabo Complex, Ntinda, Kampala</p>
+                    <p className="text-gray-300">{companyInfo?.address || "Kirabo Complex, Ntinda, Kampala"}</p>
                   </div>
                 </div>
                 
@@ -343,7 +387,7 @@ export default function NovakHospitality() {
                   </div>
                   <div>
                     <h3 className="text-white font-semibold mb-1">Phone</h3>
-                    <p className="text-gray-300">+256 776 464 943</p>
+                    <p className="text-gray-300">{companyInfo?.phone || "+256 776 464 943"}</p>
                   </div>
                 </div>
                 
@@ -353,18 +397,19 @@ export default function NovakHospitality() {
                   </div>
                   <div>
                     <h3 className="text-white font-semibold mb-1">Email</h3>
-                    <p className="text-gray-300">novakhospitalitysoln@gmail.com</p>
+                    <p className="text-gray-300">{companyInfo?.email || "novakhospitalitysoln@gmail.com"}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl p-8">
-              <div className="space-y-6">
+              <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
                   <input
                     type="text"
                     placeholder="Your Name"
+                    required
                     value={contactForm.name}
                     onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 outline-none transition"
@@ -374,6 +419,7 @@ export default function NovakHospitality() {
                   <input
                     type="email"
                     placeholder="Your Email"
+                    required
                     value={contactForm.email}
                     onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 outline-none transition"
@@ -392,15 +438,20 @@ export default function NovakHospitality() {
                   <textarea
                     placeholder="Tell us about your project"
                     rows={5}
+                    required
                     value={contactForm.message}
                     onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 outline-none transition resize-none"
                   />
                 </div>
-                <button onClick={handleContactSubmit} className="w-full bg-amber-500 text-white py-4 rounded-lg font-semibold hover:bg-amber-600 transition transform hover:scale-105">
-                  Send Message
+                <button 
+                  type="submit" 
+                  disabled={formSubmitting}
+                  className="w-full bg-amber-500 text-white py-4 rounded-lg font-semibold hover:bg-amber-600 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {formSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>
@@ -429,9 +480,9 @@ export default function NovakHospitality() {
             <div>
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Kirabo Complex</li>
+                <li>{companyInfo?.address || "Kirabo Complex"}</li>
                 <li>Ntinda, Kampala</li>
-                <li>+256 776 464 943</li>
+                <li>{companyInfo?.phone || "+256 776 464 943"}</li>
               </ul>
             </div>
           </div>

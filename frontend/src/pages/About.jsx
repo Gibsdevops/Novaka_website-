@@ -1,45 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, Mail, Phone, MapPin, Users, Target, Lightbulb, Award, Heart, Shield, TrendingUp, CheckCircle } from 'lucide-react';
-import '../index.css'; // Ensure Tailwind CSS is imported
-
-
+import { getTeamMembers, getCompanyInfo } from '../apiConfig';
+import { fallbackTeam, fallbackCompanyInfo } from '../fallbackData';
 
 export default function AboutPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [team, setTeam] = useState(fallbackTeam);
+  const [companyInfo, setCompanyInfo] = useState(fallbackCompanyInfo);
+  const [loading, setLoading] = useState(true);
 
-  const team = [
-    {
-      name: "Isaac, Jacob Luwo",
-      role: "Founder",
-      description: "Leads the company in all strategic operations and financial performance keeping the rest of us on Track.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Tonny, Ochieng",
-      role: "Senior Consultant",
-      description: "Leads the project delivery for our clients. Provides strategic solutions and addresses business needs.",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Brian, Luzze",
-      role: "Technology Expert",
-      description: "Acts as the internal server providing knowledge and advice related to technological products/issues.",
-      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Allan, Twesigye",
-      role: "Hotel Mgmt/Operations",
-      description: "Oversees supply chain, logistics, inventory, quality control, Budget & Third Party relationships at the site.",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Muhammes, Baluku",
-      role: "Head of Culinary",
-      description: "Leads the company in all aspects of culinary development, kitchen Talent and making great Food.",
-      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop"
-    }
-  ];
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch team members
+        try {
+          const teamData = await getTeamMembers();
+          if (teamData && teamData.length > 0) {
+            setTeam(teamData.sort((a, b) => a.order - b.order));
+          }
+        } catch (error) {
+          console.warn('Using fallback team data');
+        }
+
+        // Fetch company info
+        try {
+          const companyData = await getCompanyInfo();
+          if (companyData && companyData.length > 0) {
+            setCompanyInfo(companyData[0]);
+          }
+        } catch (error) {
+          console.warn('Using fallback company data');
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const divisions = [
     {
@@ -104,11 +106,9 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">
-                <Link to="/" className="text-2xl font-bold text-white">
-                  NOVAK <span className="text-amber-500">HOSPITALITY</span>
-                </Link>
-              </h1>
+              <Link to="/" className="text-2xl font-bold text-white">
+                NOVAK <span className="text-amber-500">HOSPITALITY</span>
+              </Link>
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
@@ -128,7 +128,7 @@ export default function AboutPage() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-800 border-t border-slate-700">
             <div className="px-4 py-4 space-y-3">
-              <Link to="/" className="text-white hover:text-amber-500 transition">Home</Link>
+              <Link to="/" className="block text-white hover:text-amber-500 py-2">Home</Link>
               <a href="#mission" className="block text-white hover:text-amber-500 py-2">Mission & Vision</a>
               <a href="#team" className="block text-white hover:text-amber-500 py-2">Our Team</a>
               <a href="#values" className="block text-white hover:text-amber-500 py-2">Values</a>
@@ -158,7 +158,7 @@ export default function AboutPage() {
             <div>
               <h2 className="text-4xl font-bold text-slate-900 mb-6">Who We Are</h2>
               <p className="text-lg text-gray-700 mb-4 leading-relaxed">
-                Novak Hospitality Solutions Uganda Ltd is a dynamic and multi-faceted company based in Uganda. Our comprehensive objectives span hospitality consulting, operational excellence, merchandise trading, manufacturing, and Training.
+                {companyInfo?.about || "Novak Hospitality Solutions Uganda Ltd is a dynamic and multi-faceted company based in Uganda. Our comprehensive objectives span hospitality consulting, operational excellence, merchandise trading, manufacturing, and Training."}
               </p>
               <p className="text-lg text-gray-700 mb-4 leading-relaxed">
                 We are dedicated to delivering exceptional value to clients and enhancing profitability, aiming to excel while promoting growth and quality service.
@@ -196,7 +196,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-3xl font-bold text-white mb-4">Our Mission</h3>
               <p className="text-gray-300 text-lg leading-relaxed">
-                Our mission is to provide unwavering excellence, innovation, and expertise across diverse industries. We're committed to delivering exceptional value and operational excellence to empower businesses and individuals for growth and sustainability.
+                {companyInfo?.mission || "Our mission is to provide unwavering excellence, innovation, and expertise across diverse industries. We're committed to delivering exceptional value and operational excellence to empower businesses and individuals for growth and sustainability."}
               </p>
             </div>
 
@@ -206,7 +206,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-3xl font-bold text-white mb-4">Our Vision</h3>
               <p className="text-gray-300 text-lg leading-relaxed">
-                Our vision is to lead with innovation, shape industries, and inspire positive change, setting the standard for service, quality, and sustainability.
+                {companyInfo?.vision || "Our vision is to lead with innovation, shape industries, and inspire positive change, setting the standard for service, quality, and sustainability."}
               </p>
             </div>
           </div>
@@ -274,10 +274,10 @@ export default function AboutPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {team.map((member, index) => (
-              <div key={index} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
+              <div key={member.id || index} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
                 <div className="relative h-80 overflow-hidden">
                   <img 
-                    src={member.image} 
+                    src={member.photo || member.image} 
                     alt={member.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
@@ -288,7 +288,7 @@ export default function AboutPage() {
                   </div>
                 </div>
                 <div className="p-6">
-                  <p className="text-gray-600 leading-relaxed">{member.description}</p>
+                  <p className="text-gray-600 leading-relaxed">{member.bio || member.description}</p>
                 </div>
               </div>
             ))}
@@ -325,23 +325,23 @@ export default function AboutPage() {
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <MapPin className="text-amber-500 mx-auto mb-3" size={32} />
                 <h3 className="text-white font-semibold mb-2">Location</h3>
-                <p className="text-gray-300 text-sm">Kirabo Complex, Ntinda, Kampala</p>
+                <p className="text-gray-300 text-sm">{companyInfo?.address || "Kirabo Complex, Ntinda, Kampala"}</p>
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <Phone className="text-amber-500 mx-auto mb-3" size={32} />
                 <h3 className="text-white font-semibold mb-2">Phone</h3>
-                <p className="text-gray-300 text-sm">+256 776 464 943</p>
+                <p className="text-gray-300 text-sm">{companyInfo?.phone || "+256 776 464 943"}</p>
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <Mail className="text-amber-500 mx-auto mb-3" size={32} />
                 <h3 className="text-white font-semibold mb-2">Email</h3>
-                <p className="text-gray-300 text-sm">novakhospitalitysoln@gmail.com</p>
+                <p className="text-gray-300 text-sm">{companyInfo?.email || "novakhospitalitysoln@gmail.com"}</p>
               </div>
             </div>
 
-            <a href="mailto:novakhospitalitysoln@gmail.com" className="inline-block bg-amber-500 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-amber-600 transition transform hover:scale-105">
+            <a href={`mailto:${companyInfo?.email || 'novakhospitalitysoln@gmail.com'}`} className="inline-block bg-amber-500 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-amber-600 transition transform hover:scale-105">
               Get In Touch
             </a>
           </div>
@@ -362,7 +362,7 @@ export default function AboutPage() {
             <div>
               <h4 className="font-bold mb-4">Quick Links</h4>
               <ul className="space-y-2">
-                <li><a href="#home" className="text-gray-400 hover:text-amber-500 transition">Home</a></li>
+                <li><Link to="/" className="text-gray-400 hover:text-amber-500 transition">Home</Link></li>
                 <li><a href="#mission" className="text-gray-400 hover:text-amber-500 transition">Mission & Vision</a></li>
                 <li><a href="#team" className="text-gray-400 hover:text-amber-500 transition">Our Team</a></li>
                 <li><a href="#values" className="text-gray-400 hover:text-amber-500 transition">Values</a></li>
@@ -372,9 +372,9 @@ export default function AboutPage() {
             <div>
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Kirabo Complex</li>
+                <li>{companyInfo?.address || "Kirabo Complex"}</li>
                 <li>Ntinda, Kampala</li>
-                <li>+256 776 464 943</li>
+                <li>{companyInfo?.phone || "+256 776 464 943"}</li>
               </ul>
             </div>
           </div>
